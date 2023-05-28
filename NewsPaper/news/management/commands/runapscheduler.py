@@ -19,22 +19,28 @@ logger = logging.getLogger(__name__)
 def my_job():
     today = datetime.datetime.now()
     last_week = today - datetime.timedelta(days=7)
-    posts = Post.objects.filter(time_create__gte = last_week)
+    posts = Post.objects.filter(time_create__gte = last_week).order_by("-time_create")
     categories = set(posts.values_list('categories__name', flat=True))
-    subscribers = set(Category.objects.filter(name__in=categories).values_list('subscriber__email', flat=True))
+    subscribers_emails = []
+    posts_send = None
+    for cat in categories:
+        subscribers = set(Subscriber.objects.filter(category__name=cat))
+        subscribers_emails = [s.user.email for s in subscribers]
+        posts_send=posts.filter(categories__name=cat)
+
 
     html_content =  render_to_string (
         'daily_post.html',
         {
-            'link': settings.SITE_URL,
-            'posts': posts,
+            'link': f'{settings.SITE_URL}/news/',
+            'posts': posts_send,
         }
     )
     msg = EmailMultiAlternatives(
         subject='Статьи за неделю',
         body='',
         from_email= settings.DEFAULT_FROM_EMAIL,
-        to=subscribers
+        to=subscribers_emails,
     )
 
     msg.attach_alternative(html_content, 'text/html')
@@ -79,3 +85,4 @@ class Command(BaseCommand):
             logger.info("Stopping scheduler...")
             scheduler.shutdown()
             logger.info("Scheduler shut down successfully!")
+
