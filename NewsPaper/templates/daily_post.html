@@ -8,7 +8,7 @@
  <h2>Здравствуйте! Новые статьи за неделю по Вашей подписке. </h2>
     <ul>
 
-        {% for post in posts_send %}
+        {% for post in posts %}
             <li> <a href=" {{link}}{{post.pk}}">{{post.title}}</a></li>
         {% endfor %}
 
