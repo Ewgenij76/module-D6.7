@@ -8,7 +8,20 @@ from subscriptions.models import Subscriber
 from .models import PostCategory
 
 
-def send_notifications(preview, pk, title, subscribers):
+@receiver(m2m_changed, sender=PostCategory)
+def notify_post_created(sender, instance, **kwargs):
+    if kwargs['action'] == 'post_add':
+        categories = instance.categories.all()
+        subscribers_emails = []
+        for cat in categories:
+            subscribers = Subscriber.objects.filter(category=cat)
+            subscribers_emails += [s.user.email for s in subscribers]
+
+        send_notifications(instance.preview(), instance.pk, instance.title, subscribers_emails)
+
+
+
+def send_notifications(preview, pk, title, subscribers_email):
     html_content = render_to_string (
         'post_created_email.html',
         {
@@ -20,7 +33,7 @@ def send_notifications(preview, pk, title, subscribers):
         subject= title,
         body='',
         from_email= settings.DEFAULT_FROM_EMAIL,
-        to=subscribers
+        to= subscribers_email,
     )
 
     msg.attach_alternative(html_content, 'text/html')
@@ -28,13 +41,3 @@ def send_notifications(preview, pk, title, subscribers):
 
 
 
-@receiver(m2m_changed, sender=PostCategory)
-def notify_post_created(sender, instance, **kwargs):
-    if kwargs['action'] == 'post_add':
-        categories = instance.categories.all()
-        subscribers_emails = []
-        for cat in categories:
-            subscribers = Subscriber.objects.filter(category=cat)
-            subscribers_emails += [s.user.email for s in subscribers]
-
-        send_notifications(instance.preview(), instance.pk, instance.title, subscribers_emails)
