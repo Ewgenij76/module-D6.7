@@ -4,14 +4,15 @@ import logging
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.cron import CronTrigger
 from django.conf import settings
-from django.core.mail import mail_managers, EmailMultiAlternatives
+from django.core.mail import EmailMultiAlternatives
 from django.core.management.base import BaseCommand
 from django.template.loader import render_to_string
 from django_apscheduler import util
 from django_apscheduler.jobstores import DjangoJobStore
 from django_apscheduler.models import DjangoJobExecution
 
-from news.models import Post, Category
+from news.models import Post
+from subscriptions.models import Subscriber
 
 logger = logging.getLogger(__name__)
 
@@ -60,12 +61,14 @@ class Command(BaseCommand):
 
         scheduler.add_job(
             my_job,
-            trigger=CronTrigger(),
+            trigger=CronTrigger(
+                day_of_week="fri", hour="18", minute="00"
+            ),
             id="my_job",  # The `id` assigned to each job MUST be unique
             max_instances=1,
             replace_existing=True,
         )
-        logger.info("Событие: Добавлена задача.")
+        logger.info("Added job 'my_job'.")
 
         scheduler.add_job(
             delete_old_job_executions,
@@ -76,7 +79,7 @@ class Command(BaseCommand):
             max_instances=1,
             replace_existing=True,
         )
-        logger.info("Событие за неделю: 'Удалены задачи'.")
+        logger.info("Added weekly job: 'delete_old_job_executions'.")
 
         try:
             logger.info("Starting scheduler...")
@@ -85,4 +88,3 @@ class Command(BaseCommand):
             logger.info("Stopping scheduler...")
             scheduler.shutdown()
             logger.info("Scheduler shut down successfully!")
-
