@@ -18,34 +18,33 @@ logger = logging.getLogger(__name__)
 
 
 def my_job():
+    # global msg
     today = datetime.datetime.now()
-    last_week = today - datetime.timedelta(days=7)
+    last_week = today - datetime.timedelta(days=2)
     posts = Post.objects.filter(time_create__gte = last_week).order_by("-time_create")
     categories = set(posts.values_list('categories__name', flat=True))
-    subscribers_emails = []
-    posts_send = None
     for cat in categories:
         subscribers = set(Subscriber.objects.filter(category__name=cat))
         subscribers_emails = [s.user.email for s in subscribers]
         posts_send=posts.filter(categories__name=cat)
+        
+        html_content =  render_to_string (
+                'daily_post.html',
+                {
+                    'link': f'{settings.SITE_URL}/news/',
+                    'posts': posts_send,
+                }
+            )
+        msg = EmailMultiAlternatives(
+                subject='Статьи за неделю',
+                body='',
+                from_email= settings.DEFAULT_FROM_EMAIL,
+                to=subscribers_emails,
+            )
 
+        msg.attach_alternative(html_content, 'text/html')
+        msg.send()
 
-    html_content =  render_to_string (
-        'daily_post.html',
-        {
-            'link': f'{settings.SITE_URL}/news/',
-            'posts': posts_send,
-        }
-    )
-    msg = EmailMultiAlternatives(
-        subject='Статьи за неделю',
-        body='',
-        from_email= settings.DEFAULT_FROM_EMAIL,
-        to=subscribers_emails,
-    )
-
-    msg.attach_alternative(html_content, 'text/html')
-    msg.send()
 
 @util.close_old_connections
 def delete_old_job_executions(max_age=604_800):
