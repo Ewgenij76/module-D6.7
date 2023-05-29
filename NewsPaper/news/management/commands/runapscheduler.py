@@ -18,7 +18,6 @@ logger = logging.getLogger(__name__)
 
 
 def my_job():
-    # global msg
     today = datetime.datetime.now()
     last_week = today - datetime.timedelta(days=2)
     posts = Post.objects.filter(time_create__gte = last_week).order_by("-time_create")
